@@ -1,4 +1,4 @@
-import React from "react"
+import { useState, useEffect } from "react"
 import { GlobalStyle } from "./GlobalStyle";
 import { Layout } from "./Layout";
 import initialContacts from "../contacts.json"
@@ -11,93 +11,66 @@ import Modal from "./Modal/Modal";
 import { NewContButton } from "./ContactList/ContactList.style";
 import { CloseModalButton } from "./Modal/Modal.style";
 
-export class App extends React.Component {
-  state = {
-    contacts: [],
-    filter: '',
-    showModal: false,
-  };
+export const App =() => {
+  const [contacts, setContacts] = useState(JSON.parse(localStorage.getItem('contacts')) ?? initialContacts);
+  const [filter, setFilter] = useState('');
+  const [showModal, setShowModal] = useState(false);
 
-  componentDidMount() {
-    (localStorage.getItem('contacts') !== null)
-    ? this.setState ({ contacts: JSON.parse(localStorage.getItem('contacts'))})
-    : this.setState({ contacts: initialContacts });
+  useEffect(() => {
+    localStorage.setItem('contacts', JSON.stringify(contacts))
+  }, [contacts]);
 
-    // const savedContacts = localStorage.getItem('contacts');
-    //     if (savedContacts !== null){
-    //   const parsedContacts = JSON.parse(savedContacts);
-    //   this.setState ({ contacts: parsedContacts});
-    //   return;
-    // }
-    //  this.setState({ contacts: initialContacts });
-  };
-
-  componentDidUpdate(_, prevState) {
-    (prevState.contacts !== this.state.contacts)
-    && localStorage.setItem('contacts', JSON.stringify(this.state.contacts))
-
-    // if (prevState.contacts !== this.state.contacts){
-    //   localStorage.setItem('contacts', JSON.stringify(this.state.contacts))
-    // }
-  };
-
-  toggleModal = () => {
-    this.setState(({ showModal }) => ({
-      showModal: !showModal,
-    }));
+  const toggleModal = () => {
+    setShowModal(!showModal)
   };
   
-  addContact = newContact => {
-    if (this.state.contacts.find(contact =>
+  const addContact = newContact => {
+    if (contacts.find(contact =>
       contact.name.toLowerCase().includes(newContact.name.toLowerCase()))) {
         window.alert(`${newContact.name} is already in contacts!`);
+        toggleModal();
     } 
     else {
-      this.setState(prevState => {return {contacts: [...prevState.contacts, newContact]}});
-      this.toggleModal();
+      setContacts(prevState => {return [...prevState, newContact]});
+      toggleModal();
     }
   };
 
-  deleteContact = (id) => {
-    this.setState(prevState => {
-      return {contacts: prevState.contacts.filter(contact => contact.id !== id)}
+ const deleteContact = (id) => {
+    setContacts(prevState => {
+      return prevState.filter(contact => contact.id !== id)
     });
   };
 
-  changeFilter = evt => {
-    this.setState({filter: evt.currentTarget.value});
+  const changeFilter = evt => {
+    setFilter(evt.currentTarget.value);
   };
 
-  getFilteredContacts =() =>{
-    const normalizedFilter = this.state.filter.toLowerCase();
-    return this.state.contacts.filter(contact =>
-      contact.name.toLowerCase().includes(normalizedFilter));
+  const getFilteredContacts =() =>{
+    return contacts.filter(contact =>
+      contact.name.toLowerCase().includes(filter.toLowerCase()));
   };
-
-  render(){
-    const filteredContacts = this.getFilteredContacts();
 
     return (
       <Layout>
       <GlobalStyle/>
-      {this.state.showModal &&
-        <Modal onClose={this.toggleModal}>
-          <CloseModalButton type="button" onClick={this.toggleModal}>X</CloseModalButton>
-          <BookForm onAddContact={this.addContact}/>
-        </Modal>}
+        {showModal &&
+          <Modal onClose={toggleModal}>
+            <CloseModalButton type="button" onClick={toggleModal}>X</CloseModalButton>
+            <BookForm onAddContact={addContact}/>
+          </Modal>}
         <h1>Phonebook</h1>
           <ContactList>
-            <NewContButton type="button" onClick={this.toggleModal}>New contact</NewContButton>
+            <NewContButton type="button" onClick={toggleModal}>New contact</NewContButton>
             <h2>Contacts</h2>
             <Filter 
-              value={this.state.filter} 
-              onChange={this.changeFilter}
+              value={filter} 
+              onChange={changeFilter}
             />
             <ContactListItem 
-              contacts={filteredContacts} 
-              onDelete={this.deleteContact}/>
+              contacts={getFilteredContacts()} 
+              onDelete={deleteContact}/>
           </ContactList>
       </Layout>
     );
-  }
 };
